@@ -5,6 +5,7 @@ COPY nginx-landing.conf /etc/nginx/conf.d/default.conf
 
 # Copiar archivos de la landing page
 COPY index.html /usr/share/nginx/html/
+COPY medprec.ico /usr/share/nginx/html/
 
 # Exponer puerto
 EXPOSE 80
