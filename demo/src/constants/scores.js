@@ -7,28 +7,67 @@ import { FiHeart, FiActivity, FiCpu, FiShield, FiUser, FiUsers } from "react-ico
 export const SCORE_DESCRIPTORS = {
   Cardio: {
     icon: <FiHeart className="text-[18px]" />,
-    includes: ["LDL", "HDL", "PCR", "ApoB", "Lp(a)"],
-    copy: "Riesgo cardiovascular estimado a partir de lípidos e inflamación.",
+    includes: [
+      "LDL", 
+      "HDL", 
+      "Colesterol Total",
+      "Triglicéridos",
+      "ApoB", 
+      "Lp(a)",
+      "Presión Arterial Sistólica",
+      "Presión Arterial Diastólica"
+    ],
+    copy: "Riesgo cardiovascular estimado a partir de perfil lipídico, presión arterial y marcadores avanzados.",
   },
   Metabo: {
     icon: <FiActivity className="text-[18px]" />,
-    includes: ["HbA1c"],
-    copy: "Metabolismo glucémico y resistencia a la insulina.",
+    includes: [
+      "HbA1c",
+      "Glucosa en Ayunas",
+      "Insulina",
+      "HOMA-IR",
+      "Ácido Úrico",
+      "Vitamina D",
+      "AST/GOT",
+      "ALT/GPT",
+      "Creatinina",
+      "Filtrado Glomerular"
+    ],
+    copy: "Metabolismo glucémico, resistencia a la insulina, función hepática y renal.",
   },
   Neuro: {
     icon: <FiCpu className="text-[18px]" />,
-    includes: [],
-    copy: "Indicadores generales de salud neurológica (mock).",
+    includes: [
+      "Homocisteína",
+      "Vitamina B12",
+      "Folato",
+      "Magnesio Sérico"
+    ],
+    copy: "Indicadores de salud neurológica, función cognitiva y marcadores neuroprotectores.",
   },
   Immuno: {
     icon: <FiShield className="text-[18px]" />,
-    includes: ["PCR"],
-    copy: "Marcadores inflamatorios e inmunitarios.",
+    includes: [
+      "PCR",
+      "PCR-us",
+      "Leucocitos",
+      "Linfocitos",
+      "VSG",
+      "Ferritina"
+    ],
+    copy: "Marcadores inflamatorios, sistema inmunitario y respuesta inflamatoria sistémica.",
   },
   Femi: {
     icon: <FiUser className="text-[18px]" />,
-    includes: [],
-    copy: "Salud específica femenina (mock).",
+    includes: [
+      "Estradiol",
+      "Progesterona",
+      "FSH",
+      "LH",
+      "TSH",
+      "Prolactina"
+    ],
+    copy: "Salud hormonal femenina, ciclo reproductivo y función tiroidea.",
   },
   Andro: {
     icon: <FiUsers className="text-[18px]" />,
