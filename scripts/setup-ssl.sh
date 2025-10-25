@@ -3,112 +3,122 @@
 
 set -e
 
-echo "🔐 Configurando SSL con Let's Encrypt para MedPrec..."
+echo "🔐 Configuración de SSL con Let's Encrypt"
+echo "=========================================="
 echo ""
+
+# Colores
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
 # Verificar que estamos en el directorio correcto
 if [ ! -f "docker-compose.yaml" ]; then
-    echo "❌ Error: Ejecutar desde el directorio raíz del proyecto"
+    echo -e "${RED}❌ Error: Ejecutar desde el directorio raíz del proyecto${NC}"
+    exit 1
+fi
+
+# Verificar que los dominios están configurados
+echo -e "${YELLOW}⚠️  IMPORTANTE: Antes de continuar, asegúrate de que:${NC}"
+echo "  1. Los dominios apuntan a este servidor (DNS configurado)"
+echo "  2. Los puertos 80 y 443 están abiertos"
+echo ""
+read -p "¿Has configurado los DNS correctamente? (s/n): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[SsYy]$ ]]; then
+    echo -e "${RED}❌ Por favor configura los DNS primero.${NC}"
+    exit 1
+fi
+
+# Solicitar email
+echo ""
+read -p "📧 Ingresa tu email para Let's Encrypt: " EMAIL
+
+if [ -z "$EMAIL" ]; then
+    echo -e "${RED}❌ El email es requerido.${NC}"
     exit 1
 fi
 
 # Crear directorios necesarios
-mkdir -p ssl/medprec.com
-mkdir -p ssl/app.medprec.com
-mkdir -p certbot/www
-
-# Solicitar email
-read -p "📧 Email para notificaciones de Let's Encrypt: " email
-
-if [ -z "$email" ]; then
-    echo "❌ Email es requerido"
-    exit 1
-fi
-
-# Verificar IP pública
-PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "No disponible")
-
 echo ""
-echo "⚠️  IMPORTANTE: Verifica que tus DNS estén configurados:"
+echo "� Creando directorios..."
+mkdir -p ssl certbot/www
+
+# Detener servicios si están corriendo
 echo ""
-echo "   Dominio              Tipo    Apunta a"
-echo "   ─────────────────    ────    ─────────────"
-echo "   medprec.com          A       $PUBLIC_IP"
-echo "   www.medprec.com      A       $PUBLIC_IP"
-echo "   app.medprec.com      A       $PUBLIC_IP"
+echo "🛑 Deteniendo servicios..."
+docker compose down 2>/dev/null || true
+
+# Iniciar solo los servicios necesarios
 echo ""
-read -p "¿Los DNS están configurados correctamente? (s/n): " dns_ready
+echo "🚀 Iniciando servicios para validación HTTP..."
+docker compose up -d landing demo
 
-if [ "$dns_ready" != "s" ] && [ "$dns_ready" != "S" ]; then
-    echo ""
-    echo "❌ Por favor configura tus DNS primero y vuelve a ejecutar:"
-    echo "   make ssl-init"
-    exit 1
-fi
+# Esperar a que los servicios estén listos
+echo "⏳ Esperando servicios..."
+sleep 5
 
-echo ""
-echo "🚀 Iniciando servicios para validación..."
-
-# Usar configuración HTTP temporal para validación
-if [ -f "nginx-http-only.conf" ]; then
-    # Backup de la configuración actual
-    cp nginx.conf nginx.conf.bak
-    cp nginx-http-only.conf nginx.conf
-    echo "   → Usando configuración HTTP temporal"
-fi
-
-# Iniciar servicios
-docker compose up -d landing demo nginx
-sleep 8
-
+# Obtener certificados
 echo ""
 echo "📜 Solicitando certificados de Let's Encrypt..."
 echo ""
 
-# Obtener certificado para medprec.com y www.medprec.com
+# Certificado para medprec.com y www.medprec.com
 echo "   → Obteniendo certificado para medprec.com..."
-docker compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly \
+    --webroot \
     --webroot-path=/var/www/certbot \
-    --email "$email" \
+    --email "$EMAIL" \
     --agree-tos \
     --no-eff-email \
+    --force-renewal \
     -d medprec.com \
     -d www.medprec.com
 
-# Obtener certificado para app.medprec.com
+# Certificado para app.medprec.com
 echo ""
 echo "   → Obteniendo certificado para app.medprec.com..."
-docker compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly \
+    --webroot \
     --webroot-path=/var/www/certbot \
-    --email "$email" \
+    --email "$EMAIL" \
     --agree-tos \
     --no-eff-email \
+    --force-renewal \
     -d app.medprec.com
 
-echo ""
-echo "📋 Creando enlaces simbólicos a los certificados..."
-
-# Crear enlaces simbólicos desde /etc/letsencrypt a ./ssl
-docker compose exec -T nginx sh -c "
-    ln -sf /etc/letsencrypt/live/medprec.com/fullchain.pem /etc/nginx/ssl/medprec.com/fullchain.pem
-    ln -sf /etc/letsencrypt/live/medprec.com/privkey.pem /etc/nginx/ssl/medprec.com/privkey.pem
-    ln -sf /etc/letsencrypt/live/app.medprec.com/fullchain.pem /etc/nginx/ssl/app.medprec.com/fullchain.pem
-    ln -sf /etc/letsencrypt/live/app.medprec.com/privkey.pem /etc/nginx/ssl/app.medprec.com/privkey.pem
-" 2>/dev/null || echo "   ℹ️  Enlaces se crearán al reiniciar"
-
-# Restaurar configuración SSL si existe backup
-if [ -f "nginx.conf.bak" ]; then
-    mv nginx.conf.bak nginx.conf
-    echo "   → Configuración SSL restaurada"
+# Verificar que los certificados se crearon
+if [ -f "ssl/live/medprec.com/fullchain.pem" ] && [ -f "ssl/live/app.medprec.com/fullchain.pem" ]; then
+    echo ""
+    echo -e "${GREEN}✅ Certificados obtenidos exitosamente!${NC}"
+    echo ""
+    
+    # Crear estructura compatible con nginx.conf
+    echo "📂 Organizando certificados..."
+    mkdir -p ssl/medprec.com ssl/app.medprec.com
+    
+    # Crear enlaces simbólicos
+    ln -sf ../live/medprec.com/fullchain.pem ssl/medprec.com/fullchain.pem
+    ln -sf ../live/medprec.com/privkey.pem ssl/medprec.com/privkey.pem
+    ln -sf ../live/app.medprec.com/fullchain.pem ssl/app.medprec.com/fullchain.pem
+    ln -sf ../live/app.medprec.com/privkey.pem ssl/app.medprec.com/privkey.pem
+    
+    echo ""
+    echo -e "${GREEN}✅ ¡Configuración completada!${NC}"
+    echo ""
+    echo "Ahora puedes iniciar los servicios en producción con:"
+    echo -e "${GREEN}make prod${NC}"
+    
+    # Detener servicios temporales
+    docker compose down
+else
+    echo ""
+    echo -e "${RED}❌ Error al obtener certificados.${NC}"
+    echo "Verifica que:"
+    echo "  1. Los dominios apuntan correctamente a este servidor"
+    echo "  2. Los puertos 80 y 443 están accesibles"
+    echo "  3. No hay firewall bloqueando las conexiones"
+    docker compose down
+    exit 1
 fi
-
-echo ""
-echo "✅ ¡Certificados SSL obtenidos exitosamente!"
-echo ""
-echo "📋 Siguientes pasos:"
-echo "   1. Reiniciar servicios: docker compose restart"
-echo "   2. Verificar: https://medprec.com"
-echo "   3. Verificar: https://app.medprec.com"
-echo ""
-echo "🔄 Los certificados se renovarán automáticamente cada 12 horas"
-echo ""
