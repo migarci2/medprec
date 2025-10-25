@@ -1,0 +1,43 @@
+# SSL certificates
+ssl/
+!ssl/.gitkeep
+
+# Let's Encrypt
+certbot/
+!certbot/.gitkeep
+
+# Logs
+*.log
+nginx-logs/
+logs/
+
+# Backups
+backups/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+build/
+dist/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml

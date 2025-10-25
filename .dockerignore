@@ -1,0 +1,9 @@
+.git
+.gitignore
+*.md
+.env*
+.DS_Store
+node_modules
+ssl/
+certbot/
+nginx-logs/

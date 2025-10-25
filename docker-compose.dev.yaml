@@ -1,0 +1,44 @@
+# Configuración para desarrollo local (sin SSL)
+services:
+  # Landing Page
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    container_name: medprec-landing-dev
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - medprec-dev
+
+  # Demo App
+  demo:
+    build:
+      context: ./demo
+      dockerfile: Dockerfile
+    container_name: medprec-demo-dev
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    networks:
+      - medprec-dev
+
+  # Nginx Reverse Proxy (sin SSL)
+  nginx:
+    image: nginx:alpine
+    container_name: medprec-nginx-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - landing
+      - demo
+    networks:
+      - medprec-dev
+
+networks:
+  medprec-dev:
+    driver: bridge
