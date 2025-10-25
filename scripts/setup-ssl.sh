@@ -50,14 +50,20 @@ echo ""
 echo "🛑 Deteniendo servicios..."
 docker compose down 2>/dev/null || true
 
-# Iniciar solo los servicios necesarios
+# Iniciar solo los servicios necesarios con configuración temporal
 echo ""
-echo "🚀 Iniciando servicios para validación HTTP..."
-docker compose up -d landing demo
+echo "🚀 Iniciando Nginx temporal para validación HTTP..."
 
-# Esperar a que los servicios estén listos
-echo "⏳ Esperando servicios..."
-sleep 5
+# Iniciar nginx con configuración temporal
+docker run -d --name medprec-nginx-temp \
+    -p 80:80 \
+    -v "$(pwd)/nginx-temp.conf:/etc/nginx/nginx.conf:ro" \
+    -v "$(pwd)/certbot/www:/var/www/certbot:ro" \
+    nginx:alpine
+
+# Esperar a que nginx esté listo
+echo "⏳ Esperando Nginx..."
+sleep 3
 
 # Obtener certificados
 echo ""
@@ -66,7 +72,11 @@ echo ""
 
 # Certificado para medprec.com y www.medprec.com
 echo "   → Obteniendo certificado para medprec.com..."
-docker compose run --rm certbot certonly \
+docker run --rm \
+    -v "$(pwd)/ssl:/etc/letsencrypt" \
+    -v "$(pwd)/certbot/www:/var/www/certbot" \
+    certbot/certbot \
+    certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --email "$EMAIL" \
@@ -79,7 +89,11 @@ docker compose run --rm certbot certonly \
 # Certificado para app.medprec.com
 echo ""
 echo "   → Obteniendo certificado para app.medprec.com..."
-docker compose run --rm certbot certonly \
+docker run --rm \
+    -v "$(pwd)/ssl:/etc/letsencrypt" \
+    -v "$(pwd)/certbot/www:/var/www/certbot" \
+    certbot/certbot \
+    certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --email "$EMAIL" \
@@ -110,8 +124,9 @@ if [ -f "ssl/live/medprec.com/fullchain.pem" ] && [ -f "ssl/live/app.medprec.com
     echo "Ahora puedes iniciar los servicios en producción con:"
     echo -e "${GREEN}make prod${NC}"
     
-    # Detener servicios temporales
-    docker compose down
+    # Detener nginx temporal
+    docker stop medprec-nginx-temp 2>/dev/null || true
+    docker rm medprec-nginx-temp 2>/dev/null || true
 else
     echo ""
     echo -e "${RED}❌ Error al obtener certificados.${NC}"
@@ -119,6 +134,9 @@ else
     echo "  1. Los dominios apuntan correctamente a este servidor"
     echo "  2. Los puertos 80 y 443 están accesibles"
     echo "  3. No hay firewall bloqueando las conexiones"
-    docker compose down
+    
+    # Detener nginx temporal
+    docker stop medprec-nginx-temp 2>/dev/null || true
+    docker rm medprec-nginx-temp 2>/dev/null || true
     exit 1
 fi
