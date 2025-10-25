@@ -89,7 +89,7 @@ make status         # Ver estado
 
 1. **Editar Makefile** - Cambiar el email en `ssl-init`:
 ```makefile
---email tu-email@example.com \
+--email hello@medprec.com \
 ```
 
 2. **Asegurar que los dominios apuntan a tu servidor:**
