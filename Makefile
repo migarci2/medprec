@@ -19,14 +19,16 @@ dev-down: ## Detener desarrollo
 	docker compose -f docker-compose.dev.yaml down
 
 # Producción
-prod: ssl-check ## Iniciar en modo producción (con SSL)
-	docker compose up -d --build
-
-ssl-check: ## Verificar y generar certificados SSL si no existen
+prod: ## Iniciar en modo producción (con SSL)
 	@if [ ! -f ssl/medprec.com/fullchain.pem ]; then \
-		echo "⚠️  Certificados SSL no encontrados. Generando certificados autofirmados..."; \
-		$(MAKE) ssl-dev; \
+		echo "⚠️  Certificados SSL no encontrados."; \
+		echo ""; \
+		echo "Por favor ejecuta primero:"; \
+		echo "  make ssl-init"; \
+		echo ""; \
+		exit 1; \
 	fi
+	docker compose up -d --build
 
 build: ## Construir imágenes
 	docker compose build
@@ -54,34 +56,12 @@ logs-landing: ## Ver logs de Landing
 	docker compose logs -f landing
 
 # SSL
-ssl-setup: ## Configurar certificados SSL (interactivo)
+ssl-init: ## Obtener certificados SSL con Let's Encrypt
 	@bash scripts/setup-ssl.sh
-
-ssl-init: ## Inicializar certificados SSL con Let's Encrypt
-	@echo "Obteniendo certificados SSL..."
-	docker compose run --rm certbot certonly --webroot \
-		--webroot-path=/var/www/certbot \
-		--email hello@medprec.com \
-		--agree-tos \
-		--no-eff-email \
-		-d medprec.com \
-		-d www.medprec.com \
-		-d app.medprec.com
 
 ssl-renew: ## Renovar certificados SSL
 	docker compose run --rm certbot renew
-
-ssl-dev: ## Generar certificados autofirmados para desarrollo
-	@mkdir -p ssl/medprec.com ssl/app.medprec.com
-	@openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-		-keyout ssl/medprec.com/privkey.pem \
-		-out ssl/medprec.com/fullchain.pem \
-		-subj "/C=ES/ST=Madrid/L=Madrid/O=MedPrec Dev/CN=localhost"
-	@openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-		-keyout ssl/app.medprec.com/privkey.pem \
-		-out ssl/app.medprec.com/fullchain.pem \
-		-subj "/C=ES/ST=Madrid/L=Madrid/O=MedPrec Dev/CN=localhost"
-	@echo "✅ Certificados autofirmados generados"
+	docker compose exec nginx nginx -s reload
 
 # Mantenimiento
 clean: ## Limpiar contenedores, volúmenes e imágenes

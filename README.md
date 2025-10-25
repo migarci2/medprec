@@ -1,6 +1,38 @@
 # MedPrec - Deployment
 
-Configuración completa de despliegue para **MedPrec** con Docker, Nginx y SSL.
+Configuración completa de despliegue para **MedPrec** con Docker, Nginx y SSL automático con Let's Encrypt.
+
+## 🚀 Inicio Rápido
+
+### Paso 1: Configurar DNS
+
+Apunta tus dominios a la IP de tu servidor:
+
+```
+medprec.com      → TU_IP_SERVIDOR
+www.medprec.com  → TU_IP_SERVIDOR
+app.medprec.com  → TU_IP_SERVIDOR
+```
+
+### Paso 2: Obtener Certificados SSL
+
+```bash
+make ssl-init
+```
+
+Ingresa tu email y confirma que los DNS están configurados. ¡Eso es todo!
+
+### Paso 3: Iniciar Servicios
+
+```bash
+make prod
+```
+
+**Accede a:**
+- Landing: https://medprec.com
+- Demo: https://app.medprec.com
+
+---
 
 ## 🏗️ Arquitectura
 
@@ -8,6 +40,7 @@ Configuración completa de despliegue para **MedPrec** con Docker, Nginx y SSL.
                     Internet
                        |
                    Nginx (80/443)
+                   SSL Termination
                        |
         +--------------+---------------+
         |                              |
