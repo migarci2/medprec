@@ -9,6 +9,13 @@ import { ActionChip } from "../common/ActionChip";
 export function PatientDashboard({ patient, onOpenScore, onOpenChat }) {
   const scores = patient.scores;
 
+  // Filter scores based on sex
+  const filteredScores = Object.entries(scores).filter(([k]) => {
+    if (patient.sex === "F" && k === "Andro") return false;
+    if (patient.sex === "M" && k === "Femi") return false;
+    return true;
+  });
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -24,7 +31,7 @@ export function PatientDashboard({ patient, onOpenScore, onOpenChat }) {
           </span>
         </div>
         <div className="space-y-4">
-          {Object.entries(scores).map(([k, v]) => (
+          {filteredScores.map(([k, v]) => (
             <button key={k} onClick={() => onOpenScore(k)} className="w-full text-left">
               <div className="flex items-center gap-3 py-2">
                 {/* Avatar con icono */}
