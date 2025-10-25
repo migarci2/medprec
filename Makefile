@@ -30,6 +30,17 @@ prod: ## Iniciar en modo producción (con SSL)
 	fi
 	docker compose up -d --build
 
+prod-with-renew: ## Iniciar en producción con renovación automática de SSL
+	@if [ ! -f ssl/medprec.com/fullchain.pem ]; then \
+		echo "⚠️  Certificados SSL no encontrados."; \
+		echo ""; \
+		echo "Por favor ejecuta primero:"; \
+		echo "  make ssl-init"; \
+		echo ""; \
+		exit 1; \
+	fi
+	docker compose --profile certbot up -d --build
+
 build: ## Construir imágenes
 	docker compose build
 
@@ -59,9 +70,21 @@ logs-landing: ## Ver logs de Landing
 ssl-init: ## Obtener certificados SSL con Let's Encrypt
 	@bash scripts/setup-ssl.sh
 
-ssl-renew: ## Renovar certificados SSL
-	docker compose run --rm certbot renew
-	docker compose exec nginx nginx -s reload
+ssl-renew: ## Renovar certificados SSL manualmente
+	docker run --rm \
+		-v "$(PWD)/ssl:/etc/letsencrypt" \
+		-v "$(PWD)/certbot/www:/var/www/certbot" \
+		certbot/certbot renew
+	@docker compose exec nginx nginx -s reload 2>/dev/null || echo "Reinicia nginx con: make reload-nginx"
+
+ssl-status: ## Ver estado de los certificados SSL
+	@if [ -f ssl/live/medprec.com/fullchain.pem ]; then \
+		echo "📜 Certificados encontrados:"; \
+		docker run --rm -v "$(PWD)/ssl:/etc/letsencrypt" certbot/certbot certificates; \
+	else \
+		echo "❌ No hay certificados SSL instalados."; \
+		echo "Ejecuta: make ssl-init"; \
+	fi
 
 # Mantenimiento
 clean: ## Limpiar contenedores, volúmenes e imágenes
